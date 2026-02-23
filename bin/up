@@ -223,6 +223,99 @@ cmd_cache_clear() {
   echo "Cache cleared."
 }
 
+cmd_income_summary() {
+  local since="" until="" limit=5000 use_cache="true"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --since) since="$2"; shift 2 ;;
+      --until) until="$2"; shift 2 ;;
+      --limit) limit="$2"; shift 2 ;;
+      --no-cache) use_cache="false"; shift ;;
+      *) echo "Unknown option: $1" >&2; exit 1 ;;
+    esac
+  done
+
+  local args=("--status" "SETTLED" "--limit" "$limit")
+  [[ -n "$since" ]] && args+=("--since" "$since")
+  [[ -n "$until" ]] && args+=("--until" "$until")
+  [[ "$use_cache" == "false" ]] && args+=("--no-cache")
+
+  local data
+  data=$(cmd_transactions "${args[@]}")
+
+  echo "$data" | jq '
+    def is_internal:
+      .category == "internal" or
+      (.description | test("^(Transfer (from|to)|Cover (from|to)|Forward (from|to)|Auto Transfer (from|to)|Quick save transfer (from|to)|Round Up|Final interest payment from)"; "i"));
+
+    [.[] | select(is_internal | not)] as $all
+    | [$all[] | select((.amount | tonumber) > 0)] as $income
+    | [$all[] | select((.amount | tonumber) < 0)] as $expenses
+
+    | {
+        income: {
+          total: ([$income[] | .amount | tonumber] | add // 0 | . * 100 | round / 100),
+          by_source: (
+            $income | group_by(.description)
+            | [.[] | {
+                description: .[0].description,
+                category: .[0].category,
+                count: length,
+                total: ([.[] | .amount | tonumber] | add | . * 100 | round / 100),
+                avg: ([.[] | .amount | tonumber] | add / length | . * 100 | round / 100)
+              }]
+            | sort_by(-.total)
+          )
+        },
+        expenses: {
+          total: ([$expenses[] | .amount | tonumber] | add // 0 | . * -1 | . * 100 | round / 100)
+        },
+        net: (([$all[] | .amount | tonumber] | add // 0) | . * 100 | round / 100)
+      }
+  '
+}
+
+cmd_monthly_summary() {
+  local since="" until="" limit=5000 use_cache="true"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --since) since="$2"; shift 2 ;;
+      --until) until="$2"; shift 2 ;;
+      --limit) limit="$2"; shift 2 ;;
+      --no-cache) use_cache="false"; shift ;;
+      *) echo "Unknown option: $1" >&2; exit 1 ;;
+    esac
+  done
+
+  local args=("--status" "SETTLED" "--limit" "$limit")
+  [[ -n "$since" ]] && args+=("--since" "$since")
+  [[ -n "$until" ]] && args+=("--until" "$until")
+  [[ "$use_cache" == "false" ]] && args+=("--no-cache")
+
+  local data
+  data=$(cmd_transactions "${args[@]}")
+
+  echo "$data" | jq '
+    def is_internal:
+      .category == "internal" or
+      (.description | test("^(Transfer (from|to)|Cover (from|to)|Forward (from|to)|Auto Transfer (from|to)|Quick save transfer (from|to)|Round Up|Final interest payment from)"; "i"));
+
+    [.[] | select(is_internal | not)] as $all
+    | $all
+    | [.[] | . + {month: (.settledAt // .createdAt | split("T")[0] | split("-")[0:2] | join("-"))}]
+    | group_by(.month)
+    | [.[] | {
+        month: .[0].month,
+        income: ([.[] | select((.amount | tonumber) > 0) | .amount | tonumber] | add // 0 | . * 100 | round / 100),
+        expenses: ([.[] | select((.amount | tonumber) < 0) | .amount | tonumber] | add // 0 | . * -1 | . * 100 | round / 100),
+        net: ([.[] | .amount | tonumber] | add // 0 | . * 100 | round / 100)
+      }]
+    | sort_by(.month)
+  '
+}
+
 # --- Main ---
 
 if [[ $# -eq 0 ]]; then
@@ -234,7 +327,9 @@ if [[ $# -eq 0 ]]; then
   echo "  transactions  List transactions (with filters)"
   echo "  categories    List all categories"
   echo "  tags          List all tags"
-  echo "  cache-clear   Clear cached API responses"
+  echo "  income-summary  Income vs expenses summary"
+  echo "  monthly-summary Month-by-month breakdown"
+  echo "  cache-clear     Clear cached API responses"
   echo ""
   echo "Transaction filters:"
   echo "  --since YYYY-MM-DD    Start date"
@@ -256,6 +351,8 @@ case "$command" in
   transactions) cmd_transactions "$@" ;;
   categories) cmd_categories "$@" ;;
   tags) cmd_tags "$@" ;;
+  income-summary) cmd_income_summary "$@" ;;
+  monthly-summary) cmd_monthly_summary "$@" ;;
   cache-clear) cmd_cache_clear ;;
   *) echo "Unknown command: $command" >&2; exit 1 ;;
 esac

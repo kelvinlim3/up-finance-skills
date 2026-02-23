@@ -8,3 +8,24 @@ I responded to your open questions. Also the skills feel too specific to the exa
 
 ## 2026-02-24
 FYI I have put my Up token in .env. Please proceed with implementation.
+
+## 2026-02-24 08:56:50
+What am I spending the most money on?
+
+## 2026-02-24 08:58:33
+Exclude charity and look back 90 days. I want to get a better sense of base line recurring expenses vs "one-offs"
+
+## 2026-02-24 09:06:23
+Go back 12 months, I want to get a sense of how much money I'm saving/distributing from regular salary, excluding some one off-large incomes.
+
+## 2026-02-24 09:15:58
+The bank australia and westpac outgoing should be "canceled out" by matching incomings - this is shuffling money to and from to avoid fees on those accounts. Validate this, then exclude from analysis, and document in AGENTS.md
+
+## 2026-02-24 09:17:55
+Re-present your previous tables/summary with these new changes
+
+## 2026-02-24 09:20:04
+Include charity in final table as an outgoing - I set aside % of income for charity regularly but distribute it irregularly, but don't count it as "savings"
+
+## 2026-02-24 09:22:01
+Remove things specific to me (e.g. the bank australia arrangement) from bin/up - that script needs to stay agnostic to who is using it. Any me-specific things need to be in AGENTS.md

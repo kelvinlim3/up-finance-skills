@@ -18,8 +18,12 @@ bin/up accounts                      # List all accounts with balances
 bin/up transactions [filters]        # List transactions
 bin/up categories                    # List all spending categories
 bin/up tags                          # List all tags
+bin/up income-summary [filters]      # Income vs expenses with source breakdown
+bin/up monthly-summary [filters]     # Month-by-month income/expenses/net
 bin/up cache-clear                   # Clear cached API responses
 ```
+
+The summary commands accept the same `--since`, `--until`, `--limit`, `--no-cache` flags as `transactions`.
 
 ### Transaction Filters
 
