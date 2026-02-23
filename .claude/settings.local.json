@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:developer.up.com.au)"
+      "WebFetch(domain:developer.up.com.au)",
+      "Bash(bin/up:*)",
+      "Bash(bin/up transactions:*)"
     ]
   }
 }

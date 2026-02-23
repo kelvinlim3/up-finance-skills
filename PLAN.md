@@ -59,6 +59,7 @@ The skill does **not** hardcode specific analyses. Instead it gives Claude enoug
 
 1. **`bin/up` script** — The foundation. Start with `ping` and `accounts`, then `transactions` (with pagination + caching), then `categories` and `tags`.
 2. **`.claude/skills/finances.md`** — The skill that teaches Claude how to use `bin/up`.
+- jq
 3. **Test end-to-end** — Verify with a few example questions.
 
 ## File Structure

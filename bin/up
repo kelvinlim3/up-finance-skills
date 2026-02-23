@@ -1,0 +1,261 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+CACHE_DIR="$PROJECT_DIR/tmp/cache"
+CACHE_TTL=900 # 15 minutes in seconds
+BASE_URL="https://api.up.com.au/api/v1"
+
+# Load token from .env if not already set
+if [[ -z "${UP_API_TOKEN:-}" ]] && [[ -f "$PROJECT_DIR/.env" ]]; then
+  export "$(grep -E '^UP_API_TOKEN=' "$PROJECT_DIR/.env" | head -1)"
+fi
+
+if [[ -z "${UP_API_TOKEN:-}" ]]; then
+  echo "Error: UP_API_TOKEN not set. Add it to .env or export it." >&2
+  exit 1
+fi
+
+mkdir -p "$CACHE_DIR"
+
+# --- Helper functions ---
+
+cache_key() {
+  echo -n "$1" | shasum -a 256 | cut -d' ' -f1
+}
+
+cache_get() {
+  local key
+  key=$(cache_key "$1")
+  local file="$CACHE_DIR/$key"
+  if [[ -f "$file" ]]; then
+    local now file_mtime age
+    now=$(date +%s)
+    file_mtime=$(stat -f %m "$file" 2>/dev/null || stat -c %Y "$file" 2>/dev/null)
+    age=$((now - file_mtime))
+    if [[ $age -lt $CACHE_TTL ]]; then
+      cat "$file"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+cache_put() {
+  local key
+  key=$(cache_key "$1")
+  cat > "$CACHE_DIR/$key"
+}
+
+api_get() {
+  local url="$1"
+  local response http_code body rate_remaining
+
+  response=$(curl -sS -g -w "\n%{http_code}" \
+    -H "Authorization: Bearer $UP_API_TOKEN" \
+    -H "Accept: application/json" \
+    "$url")
+
+  http_code=$(echo "$response" | tail -1)
+  body=$(echo "$response" | sed '$d')
+
+  if [[ "$http_code" -ge 400 ]]; then
+    echo "Error: API returned HTTP $http_code" >&2
+    echo "$body" | jq -r '.errors[]? | "\(.title): \(.detail)"' 2>/dev/null >&2 || echo "$body" >&2
+    exit 1
+  fi
+
+  echo "$body"
+}
+
+# Fetch a paginated endpoint, collecting all results up to a limit
+api_get_paginated() {
+  local url="$1"
+  local limit="${2:-1000}"
+  local use_cache="${3:-true}"
+  local cache_url="$url?limit=$limit"
+  local all_data="[]"
+  local count=0
+
+  if [[ "$use_cache" == "true" ]]; then
+    local cached
+    if cached=$(cache_get "$cache_url"); then
+      echo "$cached"
+      return 0
+    fi
+  fi
+
+  local next_url="$url"
+  while [[ -n "$next_url" ]] && [[ "$next_url" != "null" ]] && [[ $count -lt $limit ]]; do
+    local response
+    response=$(api_get "$next_url")
+
+    local page_data
+    page_data=$(echo "$response" | jq -r '.data')
+    all_data=$(echo "$all_data" "$page_data" | jq -s '.[0] + .[1]')
+    count=$(echo "$all_data" | jq 'length')
+
+    next_url=$(echo "$response" | jq -r '.links.next // empty')
+  done
+
+  # Trim to limit
+  all_data=$(echo "$all_data" | jq ".[:$limit]")
+
+  if [[ "$use_cache" == "true" ]]; then
+    echo "$all_data" | cache_put "$cache_url"
+  fi
+
+  echo "$all_data"
+}
+
+# --- Commands ---
+
+cmd_ping() {
+  api_get "$BASE_URL/util/ping"
+}
+
+cmd_accounts() {
+  local use_cache="true"
+  for arg in "$@"; do
+    [[ "$arg" == "--no-cache" ]] && use_cache="false"
+  done
+
+  local data
+  data=$(api_get_paginated "$BASE_URL/accounts" 100 "$use_cache")
+  echo "$data" | jq '[.[] | {
+    id: .id,
+    name: .attributes.displayName,
+    type: .attributes.accountType,
+    ownership: .attributes.ownershipType,
+    balance: .attributes.balance.value,
+    currency: .attributes.balance.currencyCode,
+    createdAt: .attributes.createdAt
+  }]'
+}
+
+cmd_transactions() {
+  local since="" until="" category="" account="" status="" limit=1000 use_cache="true"
+  local account_path=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --since) since="$2"; shift 2 ;;
+      --until) until="$2"; shift 2 ;;
+      --category) category="$2"; shift 2 ;;
+      --account) account="$2"; shift 2 ;;
+      --status) status="$2"; shift 2 ;;
+      --limit) limit="$2"; shift 2 ;;
+      --no-cache) use_cache="false"; shift ;;
+      *) echo "Unknown option: $1" >&2; exit 1 ;;
+    esac
+  done
+
+  # Build URL
+  local url
+  if [[ -n "$account" ]]; then
+    url="$BASE_URL/accounts/$account/transactions"
+  else
+    url="$BASE_URL/transactions"
+  fi
+
+  # Build query params
+  local params=()
+  [[ -n "$since" ]] && params+=("filter[since]=${since}T00:00:00%2B10:00")
+  [[ -n "$until" ]] && params+=("filter[until]=${until}T23:59:59%2B10:00")
+  [[ -n "$category" ]] && params+=("filter[category]=$category")
+  [[ -n "$status" ]] && params+=("filter[status]=$status")
+  params+=("page[size]=100")
+
+  local query_string
+  query_string=$(IFS='&'; echo "${params[*]}")
+  url="$url?$query_string"
+
+  local data
+  data=$(api_get_paginated "$url" "$limit" "$use_cache")
+  echo "$data" | jq '[.[] | {
+    id: .id,
+    status: .attributes.status,
+    description: .attributes.description,
+    message: .attributes.message,
+    amount: .attributes.amount.value,
+    currency: .attributes.amount.currencyCode,
+    foreignAmount: (.attributes.foreignAmount // null),
+    category: .relationships.category.data.id,
+    parentCategory: .relationships.parentCategory.data.id,
+    tags: [.relationships.tags.data[]?.id],
+    roundUp: .attributes.roundUp,
+    cashback: .attributes.cashback,
+    settledAt: .attributes.settledAt,
+    createdAt: .attributes.createdAt
+  }]'
+}
+
+cmd_categories() {
+  local use_cache="true"
+  for arg in "$@"; do
+    [[ "$arg" == "--no-cache" ]] && use_cache="false"
+  done
+
+  local data
+  data=$(api_get_paginated "$BASE_URL/categories" 200 "$use_cache")
+  echo "$data" | jq '[.[] | {
+    id: .id,
+    name: .attributes.name,
+    parent: .relationships.parent.data.id,
+    children: [.relationships.children.data[]?.id]
+  }]'
+}
+
+cmd_tags() {
+  local use_cache="true"
+  for arg in "$@"; do
+    [[ "$arg" == "--no-cache" ]] && use_cache="false"
+  done
+
+  local data
+  data=$(api_get_paginated "$BASE_URL/tags" 200 "$use_cache")
+  echo "$data" | jq '[.[] | .id]'
+}
+
+cmd_cache_clear() {
+  rm -rf "$CACHE_DIR"/*
+  echo "Cache cleared."
+}
+
+# --- Main ---
+
+if [[ $# -eq 0 ]]; then
+  echo "Usage: bin/up <command> [options]"
+  echo ""
+  echo "Commands:"
+  echo "  ping          Verify API token"
+  echo "  accounts      List all accounts"
+  echo "  transactions  List transactions (with filters)"
+  echo "  categories    List all categories"
+  echo "  tags          List all tags"
+  echo "  cache-clear   Clear cached API responses"
+  echo ""
+  echo "Transaction filters:"
+  echo "  --since YYYY-MM-DD    Start date"
+  echo "  --until YYYY-MM-DD    End date"
+  echo "  --category <slug>     Filter by category"
+  echo "  --account <id>        Filter by account"
+  echo "  --status SETTLED|HELD Filter by status"
+  echo "  --limit N             Max results (default: 1000)"
+  echo "  --no-cache            Bypass cache"
+  exit 0
+fi
+
+command="$1"
+shift
+
+case "$command" in
+  ping) cmd_ping "$@" ;;
+  accounts) cmd_accounts "$@" ;;
+  transactions) cmd_transactions "$@" ;;
+  categories) cmd_categories "$@" ;;
+  tags) cmd_tags "$@" ;;
+  cache-clear) cmd_cache_clear ;;
+  *) echo "Unknown command: $command" >&2; exit 1 ;;
+esac
