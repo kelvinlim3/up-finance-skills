@@ -1,0 +1,1 @@
+Whenever you receive a prompt, append it to "PROMPT_HISTORY.md" with a timestamp (in addition to whatever the prompt is asking)
