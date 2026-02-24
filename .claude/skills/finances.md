@@ -62,7 +62,7 @@ bin/up cache-clear                   # Clear cached API responses
   ```
   .description | test("^(Transfer (from|to)|Cover (from|to)|Forward (from|to)|Auto Transfer (from|to)|Quick save transfer (from|to)|Round Up|Final interest payment from)"; "i")
   ```
-- Any user-specific transfer exclusions (e.g. round-trip transfers to other banks) should be documented in `PERSONAL.md`, not hardcoded.
+- Any user-specific transfer exclusions (e.g. round-trip transfers to other banks) should be documented in `AGENTS.md` or other user-supplied context.
 
 ### 2Up (Joint Accounts)
 - `bin/up transactions` (without `--account`) returns transactions from **all** accounts — both individual and joint (2Up). This means joint spending is already included in any global analysis.
