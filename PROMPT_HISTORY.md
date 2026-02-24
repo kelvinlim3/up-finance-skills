@@ -29,3 +29,18 @@ Include charity in final table as an outgoing - I set aside % of income for char
 
 ## 2026-02-24 09:22:01
 Remove things specific to me (e.g. the bank australia arrangement) from bin/up - that script needs to stay agnostic to who is using it. Any me-specific things need to be in AGENTS.md
+
+## 2026-02-24 09:28:41
+How much do I typically spend on eating out each week?
+
+## 2026-02-24 09:31:22
+Which restaurant is "Baked Since 95"?
+
+## 2026-02-24 09:48:15
+Write a README.md, and include an analysis of "what would need to be true" (i.e. what needs to change in current state-of-the-art tools, how would the industry need to develop) for this skill to be distributable and useable by mainstream consumers.
+
+## 2026-02-24 12:03:04
+Revisit saving rate analysis, and include 2Up transactions
+
+## 2026-02-24 12:14:41
+Encode what you learned about 2Up into the finance skill - it will be the same for everyone using this tool.

@@ -41,7 +41,9 @@ The summary commands accept the same `--since`, `--until`, `--limit`, `--no-cach
 
 ### Accounts
 - `type`: TRANSACTIONAL (spending), SAVER, or HOME_LOAN
+- `ownership`: INDIVIDUAL or JOINT
 - `balance`: Current balance as a string (e.g. "1234.56")
+- Up's "2Up" feature creates JOINT accounts shared between two people. These appear as separate accounts (e.g. "2Up Spending") but their transactions are included in the global `bin/up transactions` results alongside individual account transactions. Use `--account <id>` to filter to a specific account if needed.
 
 ### Transactions
 - `amount`: String. **Negative = money out (debit), positive = money in (credit)**
@@ -60,6 +62,13 @@ The summary commands accept the same `--since`, `--until`, `--limit`, `--no-cach
 
 ### Internal Transfers
 - Transfers between the user's own accounts appear as transactions with `category: "internal"` or the description will match another account name. Exclude these when calculating spending/income totals.
+- `bin/up income-summary` and `bin/up monthly-summary` already filter these out.
+- When using raw `bin/up transactions` output, filter with the `is_internal` pattern used in those commands (matches "Transfer from/to", "Cover from/to", "Forward from/to", "Auto Transfer from/to", "Quick save transfer from/to", "Round Up", "Final interest payment from").
+
+### 2Up (Joint Accounts)
+- `bin/up transactions` (without `--account`) returns transactions from **all** accounts — both individual and joint (2Up). This means joint spending is already included in any global analysis.
+- Be aware of this when breaking down expenses: household bills may be paid from the 2Up account. Use `bin/up accounts` to identify joint accounts, then `--account <id>` to isolate if needed.
+- When analysing savings, check both individual and joint saver account balances via `bin/up accounts`.
 
 ## Approach
 
