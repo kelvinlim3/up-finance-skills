@@ -18,12 +18,8 @@ bin/up accounts                      # List all accounts with balances
 bin/up transactions [filters]        # List transactions
 bin/up categories                    # List all spending categories
 bin/up tags                          # List all tags
-bin/up income-summary [filters]      # Income vs expenses with source breakdown
-bin/up monthly-summary [filters]     # Month-by-month income/expenses/net
 bin/up cache-clear                   # Clear cached API responses
 ```
-
-The summary commands accept the same `--since`, `--until`, `--limit`, `--no-cache` flags as `transactions`.
 
 ### Transaction Filters
 
@@ -61,9 +57,12 @@ The summary commands accept the same `--since`, `--until`, `--limit`, `--no-cach
 - Use `bin/up categories` to see the full tree
 
 ### Internal Transfers
-- Transfers between the user's own accounts appear as transactions with `category: "internal"` or the description will match another account name. Exclude these when calculating spending/income totals.
-- `bin/up income-summary` and `bin/up monthly-summary` already filter these out.
-- When using raw `bin/up transactions` output, filter with the `is_internal` pattern used in those commands (matches "Transfer from/to", "Cover from/to", "Forward from/to", "Auto Transfer from/to", "Quick save transfer from/to", "Round Up", "Final interest payment from").
+- Transfers between the user's own accounts appear as transactions where the description matches internal transfer patterns. Exclude these when calculating spending/income totals.
+- Filter with this jq pattern (matches "Transfer from/to", "Cover from/to", "Forward from/to", "Auto Transfer from/to", "Quick save transfer from/to", "Round Up", "Final interest payment from"):
+  ```
+  .description | test("^(Transfer (from|to)|Cover (from|to)|Forward (from|to)|Auto Transfer (from|to)|Quick save transfer (from|to)|Round Up|Final interest payment from)"; "i")
+  ```
+- Any user-specific transfer exclusions (e.g. round-trip transfers to other banks) should be documented in `PERSONAL.md`, not hardcoded.
 
 ### 2Up (Joint Accounts)
 - `bin/up transactions` (without `--account`) returns transactions from **all** accounts — both individual and joint (2Up). This means joint spending is already included in any global analysis.
@@ -79,3 +78,29 @@ When answering financial questions:
 3. **Exclude internal transfers** when calculating spending, income, or savings. These are just money moving between the user's own accounts.
 4. **Present results clearly.** Use markdown tables for breakdowns. Show dollar amounts and percentages. Compare periods when relevant.
 5. **Be specific.** Name the actual merchants and categories. Don't just say "you spend a lot on food" — say "you spent $X on groceries and $Y eating out."
+6. **Check `PERSONAL.md`** (if it exists) for user-specific exclusions, known values, or configuration before running analysis.
+
+## Validation
+
+Apply these techniques to ensure financial output is accurate:
+
+### Income = Expenses + Net
+After computing income and expenses, verify that `income - expenses = net savings/surplus`. If it doesn't balance, there's a categorisation or filtering error. Present this check explicitly.
+
+### Category Exhaustiveness
+After grouping transactions by category, sum the category totals and compare to the overall total. The difference reveals uncategorised or missed transactions. Report if >1% of transactions are unaccounted for.
+
+### Transaction Count Cross-Check
+When presenting aggregated results, also report the total number of transactions included. Compare this to the raw count from `bin/up transactions` for the same period (after excluding internal transfers). A mismatch indicates a filtering bug.
+
+### Spot-Check Sample Transactions
+After computing totals, show 2-3 sample transactions from the largest categories so the user can eyeball whether they're categorised correctly. This catches systematic miscategorisation (e.g. a subscription being tagged as "groceries").
+
+### Month-Over-Month Sanity Bounds
+Flag any month where spending or income deviates by more than 50% from the median for that category. Large deviations aren't necessarily wrong, but they should be called out so the user can confirm (e.g. "December groceries were 2x your typical month — holiday spending?").
+
+### Known-Value Anchoring
+If `PERSONAL.md` contains known values (e.g. rent amount, salary, expected monthly savings), compare computed values against them. Report any discrepancies. If a known value would be useful for validation but isn't in `PERSONAL.md`, inform the user: "If you add your monthly rent amount to PERSONAL.md, I can cross-check it against transaction data."
+
+### Show Your Working
+Always include the date range, number of transactions, and any exclusions applied in your output. This lets the user verify the scope of the analysis matches their expectation. Example: "Based on 342 transactions from 2025-03-01 to 2025-05-31, excluding 28 internal transfers."

@@ -44,3 +44,9 @@ Revisit saving rate analysis, and include 2Up transactions
 
 ## 2026-02-24 12:14:41
 Encode what you learned about 2Up into the finance skill - it will be the same for everyone using this tool.
+
+## 2026-02-24 12:25:51
+Given you are providing financial summaries, what are some techniques you could apply to validate your output? Don't implement anything yet, just come up with options.
+
+## 2026-02-24 12:29:56
+Encode 2, 3, 4, 5, 6, 8 and 10 into finance skill. Also, remove the summary commands from up command and don't rely on them - they may have quirks specific to user (update finance skill for this change as well). "Known values" (if any) will be provided by user in PERSONAL.md. If there is a known value that would be useful to compare against, inform the user in your output.
