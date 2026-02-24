@@ -1,4 +1,4 @@
-# claude-up
+# Up Finance Skills
 
 A Claude Code skill for analysing personal finances via the [Up Banking API](https://developer.up.com.au/).
 
