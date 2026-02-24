@@ -22,7 +22,7 @@ There are no hardcoded analyses. The skill gives Claude the building blocks (acc
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 - `jq` for JSON processing
 - `curl` for API requests
-- An [Up Banking](https://up.com.au) account with API access
+- An [Up](https://up.com.au) account with API access
 
 ## Example questions
 
