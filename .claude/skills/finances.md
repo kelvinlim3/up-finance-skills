@@ -80,27 +80,27 @@ When answering financial questions:
 5. **Be specific.** Name the actual merchants and categories. Don't just say "you spend a lot on food" — say "you spent $X on groceries and $Y eating out."
 6. **Check `PERSONAL.md`** (if it exists) for user-specific exclusions, known values, or configuration before running analysis.
 
-## Validation
+## Validation (MANDATORY)
 
-Apply these techniques to ensure financial output is accurate:
+**Every financial analysis MUST end with a "Validation" section.** This is not optional. If the validation section is missing from your output, the analysis is incomplete. Include whichever checks below are applicable to the analysis performed, and always include "Show Your Working."
 
-### Income = Expenses + Net
-After computing income and expenses, verify that `income - expenses = net savings/surplus`. If it doesn't balance, there's a categorisation or filtering error. Present this check explicitly.
+### Show Your Working (always required)
+Include the date range, total transaction count before and after filtering, and what exclusions were applied. Example: "Based on 342 transactions from 2025-03-01 to 2025-05-31 (685 raw, 343 excluded: 315 internal transfers, 28 bank fee-avoidance)."
 
-### Category Exhaustiveness
-After grouping transactions by category, sum the category totals and compare to the overall total. The difference reveals uncategorised or missed transactions. Report if >1% of transactions are unaccounted for.
+### Income = Expenses + Net (when computing income or expenses)
+Verify that `income - expenses = net savings/surplus`. If it doesn't balance, there's a categorisation or filtering error. Present this check explicitly.
 
-### Transaction Count Cross-Check
-When presenting aggregated results, also report the total number of transactions included. Compare this to the raw count from `bin/up transactions` for the same period (after excluding internal transfers). A mismatch indicates a filtering bug.
+### Category Exhaustiveness (when grouping by category)
+Sum category totals and compare to the overall total. The difference reveals uncategorised or missed transactions. Report if >1% of transactions are unaccounted for.
 
-### Spot-Check Sample Transactions
-After computing totals, show 2-3 sample transactions from the largest categories so the user can eyeball whether they're categorised correctly. This catches systematic miscategorisation (e.g. a subscription being tagged as "groceries").
+### Transaction Count Cross-Check (when presenting aggregated results)
+Report total transactions included in the aggregation. Compare to the raw filtered count for the same period. A mismatch indicates a filtering bug.
 
-### Month-Over-Month Sanity Bounds
-Flag any month where spending or income deviates by more than 50% from the median for that category. Large deviations aren't necessarily wrong, but they should be called out so the user can confirm (e.g. "December groceries were 2x your typical month — holiday spending?").
+### Spot-Check Samples (when presenting category or merchant totals)
+Show 2-3 sample transactions from the largest categories so the user can eyeball whether they're categorised correctly. This catches systematic miscategorisation.
 
-### Known-Value Anchoring
-If `PERSONAL.md` contains known values (e.g. rent amount, salary, expected monthly savings), compare computed values against them. Report any discrepancies. If a known value would be useful for validation but isn't in `PERSONAL.md`, inform the user: "If you add your monthly rent amount to PERSONAL.md, I can cross-check it against transaction data."
+### Month-Over-Month Sanity Bounds (when covering 2+ months)
+Flag any month where spending or income deviates by more than 50% from the median for that category. Large deviations aren't necessarily wrong, but they should be called out.
 
-### Show Your Working
-Always include the date range, number of transactions, and any exclusions applied in your output. This lets the user verify the scope of the analysis matches their expectation. Example: "Based on 342 transactions from 2025-03-01 to 2025-05-31, excluding 28 internal transfers."
+### Known-Value Anchoring (when PERSONAL.md has relevant values)
+Compare computed values against known values from `PERSONAL.md`. Report any discrepancies. If a known value would be useful for validation but isn't in `PERSONAL.md`, suggest adding it.

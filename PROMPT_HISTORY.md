@@ -50,3 +50,8 @@ Given you are providing financial summaries, what are some techniques you could 
 
 ## 2026-02-24 12:29:56
 Encode 2, 3, 4, 5, 6, 8 and 10 into finance skill. Also, remove the summary commands from up command and don't rely on them - they may have quirks specific to user (update finance skill for this change as well). "Known values" (if any) will be provided by user in PERSONAL.md. If there is a known value that would be useful to compare against, inform the user in your output.
+## 2026-02-24 15:48:31 - I want to get a sense of my regular expenses vs one-off, going back 3 months.
+## 2026-02-24 15:51:51 - You didn't provide evidence of the validation step that the finance.md instructed you to take. Please figure out why not and update that skill accordingly.
+## 2026-02-24 15:53:07 - now re-do the original analysis
+## 2026-02-24 15:58:45 - I want to get a sense of my savings rate.
+## 2026-02-24 16:02:34 - Thinking about buying an investment property. I can fund a 20% deposit from other holdings. How expensive a property can I afford to service off my salary, while still keeping a buffer in savings rate?
