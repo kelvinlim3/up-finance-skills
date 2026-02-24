@@ -8,7 +8,7 @@ Ask natural language questions about your money — "what am I spending the most
 
 A shell script (`bin/up`) wraps the Up API, handling authentication, pagination, rate limiting, and caching. A Claude Code skill (`.claude/skills/finances.md`) teaches Claude how to use the script and interpret the data. Claude composes the right queries and uses `jq` to aggregate results for whatever question you ask.
 
-There are no hardcoded analyses. The skill gives Claude the building blocks (account data, transaction data with filters, category taxonomy) and lets it reason about any financial question.
+There are no hardcoded analyses. The skill gives Claude the building blocks (account data, transaction data with filters, category taxonomy) and lets it reason about any financial question. The skill also includes validation steps to reduce the risk of incorrect analysis.
 
 ## Setup
 
@@ -36,3 +36,11 @@ There are no hardcoded analyses. The skill gives Claude the building blocks (acc
 ## Personalisation
 
 The script (`bin/up`) is user-agnostic. User-specific configuration (like transactions to exclude from analysis, how to treat certain income/expense categories) goes in `PERSONAL.md`, which Claude reads automatically (referenced from `CLAUDE.md`). This keeps the tool generic while allowing per-user customisation.
+
+## Limitations and future work
+
+Ultimately, I want mainstream end-users to be able to use that, which would require improvements in the ecosystem:
+
+* Secrets management.
+* Ability to create skills in web/app UI. (Bonus points: "skill marketplace" or other way to distribute.)
+* Ability to sandbox `bash/curl/jq`. Given widespread utitly of "fetch and process JSON API" feels like smart minds should be working on this.
